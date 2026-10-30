@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 20
+
+  wordpress:
+    image: wordpress:7.0-php8.3-apache
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp:/var/www/html
+      - ./plugin/br-checkout-essentials:/var/www/html/wp-content/plugins/br-checkout-essentials:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Runs scripts/setup.sh once: installs WordPress and WooCommerce and builds
+  # a demo shop. `docker compose run --rm cli` reruns it; it is idempotent.
+  cli:
+    image: wordpress:cli-php8.3
+    user: "33:33"
+    profiles: ["setup"]
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      # "block" (WooCommerce's default) or "classic" (the shortcode checkout).
+      CHECKOUT: ${CHECKOUT:-block}
+    volumes:
+      - wp:/var/www/html
+      - ./plugin/br-checkout-essentials:/var/www/html/wp-content/plugins/br-checkout-essentials:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["sh", "/scripts/setup.sh"]
+    depends_on:
+      - wordpress
+
+volumes:
+  db:
+  wp:

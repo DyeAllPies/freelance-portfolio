@@ -1,0 +1,28 @@
+.brce-whatsapp-float {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.brce-whatsapp-float:hover,
+.brce-whatsapp-float:focus-visible {
+  background: #1ebe5b;
+  color: #fff;
+}
+.brce-whatsapp-link {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: #25d366;
+  color: #fff;
+  text-decoration: none;
+}
