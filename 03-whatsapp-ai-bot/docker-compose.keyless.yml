@@ -1,0 +1,93 @@
+# A self-contained stack that needs no Meta or Anthropic account:
+#   docker compose -f docker-compose.keyless.yml up --build -d --wait
+# Every value below is a local test value, not a secret. The keyed stack is
+# docker-compose.yml; this file has its own name, so the two never share
+# containers or volumes.
+name: whatsapp-bot-keyless
+
+services:
+  bot:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://bot:bot@db:5432/bot
+      WHATSAPP_TOKEN: mock-token
+      WHATSAPP_PHONE_NUMBER_ID: "100000000000001"
+      WHATSAPP_VERIFY_TOKEN: local-verify
+      WHATSAPP_APP_SECRET: local-app-secret
+      ADMIN_USER: admin
+      ADMIN_PASSWORD: local-pw
+      # Stand-in for graph.facebook.com: the mock service below.
+      WHATSAPP_GRAPH_URL: http://mock:3100
+      # Stand-in for the Anthropic API: a local model served by Ollama.
+      LLM_PROVIDER: ollama
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+    depends_on:
+      db:
+        condition: service_healthy
+      mock:
+        condition: service_healthy
+      model-pull:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health"]
+      interval: 3s
+      retries: 20
+
+  # Stand-in for the WhatsApp Cloud API and for a customer's phone.
+  mock:
+    build: .
+    command: ["node", "dist/mock/main.js"]
+    ports:
+      - "3100:3100"
+    environment:
+      MOCK_TOKEN: mock-token
+      MOCK_PHONE_NUMBER_ID: "100000000000001"
+      MOCK_APP_SECRET: local-app-secret
+      BOT_WEBHOOK_URL: http://bot:3000/webhook
+      MOCK_REFUSE_TO: ${MOCK_REFUSE_TO:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/health"]
+      interval: 3s
+      retries: 20
+
+  # The same database as the keyed stack, in its own volume.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: bot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot"]
+      interval: 2s
+      retries: 15
+
+  # Stand-in for the Claude API: an open-source model on the CPU, no GPU needed.
+  ollama:
+    image: ollama/ollama:0.5.7
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 30
+
+  # Stand-in for a manual model download: pulls the model once into the volume.
+  model-pull:
+    image: ollama/ollama:0.5.7
+    restart: "no"
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen2.5:1.5b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  ollama:

@@ -1,0 +1,38 @@
+:root {
+  --bg: #f7f7f8;
+  --card: #ffffff;
+  --text: #1c1c22;
+  --muted: #62626e;
+  --accent: #0b7a53;
+  --border: #e3e3e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141418;
+    --card: #1d1d23;
+    --text: #ececf1;
+    --muted: #a0a0ad;
+    --accent: #3ccf95;
+    --border: #2e2e36;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+header { display: flex; gap: 12px; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+header a { color: var(--text); font-weight: 700; text-decoration: none; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--accent); color: var(--accent); }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.price { font-size: 20px; font-weight: 700; }
+.muted { color: var(--muted); }
+button, .button {
+  display: inline-block; padding: 10px 16px; border-radius: 8px; border: 0; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 15px; text-decoration: none;
+}
+button:disabled { opacity: 0.6; cursor: default; }
+input[type="email"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+label { display: block; margin: 12px 0 4px; }
+fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; }
+textarea { width: 100%; font-family: monospace; font-size: 12px; }
+.error { color: #c0392b; }

@@ -1,0 +1,56 @@
+# Keyless run: `docker compose up` starts the app, a local Graph mock and Postgres,
+# with no .env file and no Meta app. Every value below has a local test default.
+#
+# Keyed run: put real values in a .env beside this file, including
+#   GRAPH_BASE_URL=https://graph.facebook.com
+#   INSTAGRAM_VERIFY_TOKEN, INSTAGRAM_APP_SECRET, INSTAGRAM_ACCESS_TOKEN
+# and start it with:
+#   docker compose up app db
+# The mock container still starts (the app lists it under depends_on), but
+# nothing calls it: GRAPH_BASE_URL from .env points the app at graph.facebook.com.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://ig:ig@db:5432/ig
+      INSTAGRAM_VERIFY_TOKEN: ${INSTAGRAM_VERIFY_TOKEN:-local-verify}
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-mock-app-secret}
+      INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-mock-token}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-pw}
+      GRAPH_BASE_URL: ${GRAPH_BASE_URL:-http://mock:4010}
+    depends_on:
+      db:
+        condition: service_healthy
+      mock:
+        condition: service_started
+
+  mock:
+    build: .
+    command: ["node", "dist/mock/mock-main.js"]
+    ports:
+      - "4010:4010"
+    environment:
+      MOCK_PORT: "4010"
+      WEBHOOK_URL: http://app:3000/webhook
+      MOCK_PUBLIC_URL: http://localhost:4010
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-mock-app-secret}
+      INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-mock-token}
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ig
+      POSTGRES_PASSWORD: ig
+      POSTGRES_DB: ig
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ig"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  pgdata:
